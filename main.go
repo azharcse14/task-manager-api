@@ -18,16 +18,42 @@ var tasks = []Task{
 	{ID: 2, Title: "Build an API", Done: false},
 }
 
+var nextID = 3
+
 func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", homeHandler)
 	mux.HandleFunc("GET /health", healthHandler)
+
 	mux.HandleFunc("GET /tasks", tasksHandler)
 	mux.HandleFunc("GET /tasks/{id}", tasksByIDHandler)
+	mux.HandleFunc("POST /tasks", createTaskHandler)
 
 	fmt.Println("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
+}
+
+func createTaskHandler(w http.ResponseWriter, r *http.Request) {
+	var newTask Task
+
+	err := json.NewDecoder(r.Body).Decode(&newTask)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid json body")
+		return
+	}
+
+	if newTask.Title == "" {
+		writeError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+
+	newTask.ID = nextID
+	nextID++
+
+	tasks = append(tasks, newTask)
+
+	writeJSON(w, http.StatusCreated, newTask)
 }
 
 func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
