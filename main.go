@@ -37,9 +37,8 @@ func main() {
 }
 
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid task ID")
+	id, ok := parseID(w, r)
+	if !ok {
 		return
 	}
 
@@ -54,9 +53,8 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
-	id, err:= strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid task ID")
+	id, ok := parseID(w, r)
+	if !ok {
 		return
 	}
 
@@ -66,7 +64,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if updated.Title == ""{
+	if updated.Title == "" {
 		writeError(w, http.StatusBadRequest, "Title is required")
 		return
 	}
@@ -105,11 +103,8 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+	id, ok := parseID(w, r)
+	if !ok {
 		return
 	}
 
@@ -132,6 +127,15 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Server is Alive")
+}
+
+func parseID(w http.ResponseWriter, r *http.Request) (int, bool) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid task ID")
+		return 0, false
+	}
+	return id, true
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) {
