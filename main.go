@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type Task struct {
@@ -19,6 +20,7 @@ var tasks = []Task{
 }
 
 var nextID = 3
+var mu sync.Mutex
 
 func main() {
 	mux := http.NewServeMux()
@@ -41,6 +43,9 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	for i, task := range tasks {
 		if task.ID == id {
@@ -69,6 +74,9 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	for i, task := range tasks {
 		if task.ID == id {
 			updated.ID = id
@@ -94,6 +102,9 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	newTask.ID = nextID
 	nextID++
 
@@ -108,6 +119,9 @@ func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	for _, task := range tasks {
 		if task.ID == id {
 			writeJSON(w, http.StatusOK, task)
@@ -118,6 +132,9 @@ func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	writeJSON(w, http.StatusOK, tasks)
 }
 
