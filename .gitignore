@@ -33,3 +33,6 @@ go.work.sum
 
 # Compiled binary for this project
 task-manager-api
+
+# SQLite database
+*.db

@@ -1,11 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
-	"sync"
+
+	_ "modernc.org/sqlite"
 )
 
 type Task struct {
@@ -14,15 +18,22 @@ type Task struct {
 	Done  bool   `json:"done"`
 }
 
-var tasks = []Task{
-	{ID: 1, Title: "Learn Go basics", Done: true},
-	{ID: 2, Title: "Build an API", Done: false},
-}
-
-var nextID = 3
-var mu sync.Mutex
+var db *sql.DB
 
 func main() {
+	var err error
+	db, err = sql.Open("sqlite", "tasks.db")
+	if err != nil {
+		log.Fatal("Cannot open database:", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Fatal("Cannot connect to database:", err)
+	}
+
+	createTable()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", homeHandler)
@@ -44,17 +55,25 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+	result, err := db.Exec("DELETE FROM tasks WHERE id=?", id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not delete task")
+		return
 	}
-	writeError(w, http.StatusNotFound, "Task not found")
+
+	rowsAffected, err := result.RowsAffected()
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not verify delete")
+		return
+	}
+
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -74,18 +93,28 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
+	result, err := db.Exec(
+		"UPDATE tasks SET title = ?, done = ? WHERE id = ?", updated.Title, updated.Done, id)
 
-	for i, task := range tasks {
-		if task.ID == id {
-			updated.ID = id
-			tasks[i] = updated
-			writeJSON(w, http.StatusOK, updated)
-			return
-		}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not update task")
+		return
 	}
-	writeError(w, http.StatusNotFound, "Task not found")
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not verify update")
+		return
+	}
+
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	updated.ID = id
+
+	writeJSON(w, http.StatusOK, updated)
 }
 
 func createTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -102,14 +131,23 @@ func createTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
+	result, err := db.Exec(
+		"INSERT INTO tasks (title, done) VALUES (?, ?)", newTask.Title, newTask.Done)
 
-	newTask.ID = nextID
-	nextID++
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not create task")
+		return
+	}
 
-	tasks = append(tasks, newTask)
+	id, err := result.LastInsertId()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not read new task ID")
+		return
+	}
 
+	newTask.ID = int(id)
+
+	w.Header().Set("Location", fmt.Sprintf("/tasks/%d", newTask.ID))
 	writeJSON(w, http.StatusCreated, newTask)
 }
 
@@ -119,21 +157,45 @@ func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
+	var t Task
+	err := db.QueryRow(
+		"SELECT id, title, done FROM tasks WHERE id = ?", id).Scan(&t.ID, &t.Title, &t.Done)
 
-	for _, task := range tasks {
-		if task.ID == id {
-			writeJSON(w, http.StatusOK, task)
-			return
-		}
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "Task not found")
+		return
 	}
-	writeError(w, http.StatusBadRequest, "Invalid task ID")
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not fetch task")
+		return
+	}
+	writeJSON(w, http.StatusOK, t)
 }
 
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
+	rows, err := db.Query("SELECT id, title, done FROM tasks ORDER BY id ASC")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not fetch tasks")
+		return
+	}
+	defer rows.Close()
+
+	tasks := []Task{}
+
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.ID, &t.Title, &t.Done); err != nil {
+			writeError(w, http.StatusInternalServerError, "Could not read tasks")
+			return
+		}
+		tasks = append(tasks, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not read tasks")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, tasks)
 }
@@ -163,4 +225,16 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+func createTable() {
+	query := `CREATE TABLE IF NOT EXISTS tasks (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		done BOOLEAN NOT NULL DEFAULT 0
+	)`
+
+	if _, err := db.Exec(query); err != nil {
+		log.Fatal("Cannot create table:", err)
+	}
 }
