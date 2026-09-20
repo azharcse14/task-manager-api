@@ -9,3 +9,18 @@ Content-Type: application/json
   "title": "",
   "done": false
 }
+
+### টাস্ক বদলানো
+PUT http://localhost:8080/tasks/1
+Content-Type: application/json
+
+{
+  "title": "Learn Go deeply",
+  "done": true
+}
+
+### টাস্ক মোছা
+DELETE http://localhost:8080/tasks/2
+
+### নেই এমন টাস্ক মোছা
+DELETE http://localhost:8080/tasks/99

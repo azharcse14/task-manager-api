@@ -29,9 +29,57 @@ func main() {
 	mux.HandleFunc("GET /tasks", tasksHandler)
 	mux.HandleFunc("GET /tasks/{id}", tasksByIDHandler)
 	mux.HandleFunc("POST /tasks", createTaskHandler)
+	mux.HandleFunc("PUT /tasks/{id}", updateTaskHandler)
+	mux.HandleFunc("DELETE /tasks/{id}", deleteTaskHandler)
 
 	fmt.Println("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
+}
+
+func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid task ID")
+		return
+	}
+
+	for i, task := range tasks {
+		if task.ID == id {
+			tasks = append(tasks[:i], tasks[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+	writeError(w, http.StatusNotFound, "Task not found")
+}
+
+func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id, err:= strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid task ID")
+		return
+	}
+
+	var updated Task
+	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON body")
+		return
+	}
+
+	if updated.Title == ""{
+		writeError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+
+	for i, task := range tasks {
+		if task.ID == id {
+			updated.ID = id
+			tasks[i] = updated
+			writeJSON(w, http.StatusOK, updated)
+			return
+		}
+	}
+	writeError(w, http.StatusNotFound, "Task not found")
 }
 
 func createTaskHandler(w http.ResponseWriter, r *http.Request) {
