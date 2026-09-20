@@ -14,7 +14,7 @@ Content-Type: application/json
 }
 
 ### টাস্ক বদলানো
-PUT http://localhost:8080/tasks/1
+PUT http://localhost:8080/tasks/2
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 }
 
 ### টাস্ক মোছা
-DELETE http://localhost:8080/tasks/2
+DELETE http://localhost:8080/tasks/1
 
 ### নেই এমন টাস্ক মোছা
 DELETE http://localhost:8080/tasks/99
