@@ -116,3 +116,27 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *TaskHandler) Trash(w http.ResponseWriter, r *http.Request) {
+	tasks, err := h.store.GetDeleted()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not fetch deleted tasks")
+		return
+	}
+	writeJSON(w, http.StatusOK, tasks)
+}
+
+func (h *TaskHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+
+	t, err := h.store.GetByID(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Could not fetch restored task")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, t)
+}

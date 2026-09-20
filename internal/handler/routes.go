@@ -11,5 +11,8 @@ func (h *TaskHandler) Routes() *http.ServeMux {
 	mux.HandleFunc("PUT /tasks/{id}", h.Update)
 	mux.HandleFunc("DELETE /tasks/{id}", h.Delete)
 
+	mux.HandleFunc("GET /tasks/trash", h.Trash)
+	mux.HandleFunc("POST /tasks/{id}/restore", h.Restore)
+
 	return mux
 }

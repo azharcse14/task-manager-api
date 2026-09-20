@@ -23,7 +23,14 @@ Content-Type: application/json
 }
 
 ### টাস্ক মোছা
-DELETE http://localhost:8080/tasks/21
+DELETE http://localhost:8080/tasks/17
 
 ### নেই এমন টাস্ক মোছা
 DELETE http://localhost:8080/tasks/99
+
+
+### Trash দেখা
+GET http://localhost:8080/tasks/trash
+
+### ফেরত আনা
+POST http://localhost:8080/tasks/1/restore

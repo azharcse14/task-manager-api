@@ -92,3 +92,44 @@ func (s *Store) Delete(id int) error {
 
 	return nil
 }
+
+func (s *Store) GetDeleted() ([]Task, error) {
+	rows, err := s.db.Query(
+		"SELECT id, title, done FROM tasks WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks := []Task{}
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.ID, &t.Title, &t.Done); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, t)
+	}
+
+	return tasks, rows.Err()
+}
+
+func (s *Store) Restore(id int) error {
+	result, err := s.db.Exec(
+		"UPDATE tasks SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL",
+		id,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}

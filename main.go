@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/azharcse14/task-manager-api/internal/migrate"
 	_ "modernc.org/sqlite"
 
 	"github.com/azharcse14/task-manager-api/internal/handler"
@@ -22,8 +23,8 @@ func main() {
 		log.Fatal("Cannot connect to database:", err)
 	}
 
-	if err := task.CreateSchema(db); err != nil {
-		log.Fatal("Cannot create schema:", err)
+	if err := migrate.Run(db); err != nil {
+		log.Fatal("Cannot run migrations:", err)
 	}
 
 	store := task.NewStore(db)
