@@ -1,11 +1,29 @@
 ### সব টাস্ক দেখা
 GET http://localhost:8080/tasks
 
+### Task By ID
+GET http://localhost:8080/tasks/1
+
 ### নতুন টাস্ক বানানো
 POST http://localhost:8080/tasks
 Content-Type: application/json
 
 {
-  "title": "",
+  "title": "Ax",
   "done": false
 }
+
+### টাস্ক বদলানো
+PUT http://localhost:8080/tasks/1
+Content-Type: application/json
+
+{
+  "title": "Learn Go deeply",
+  "done": true
+}
+
+### টাস্ক মোছা
+DELETE http://localhost:8080/tasks/2
+
+### নেই এমন টাস্ক মোছা
+DELETE http://localhost:8080/tasks/99
