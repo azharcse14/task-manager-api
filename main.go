@@ -41,17 +41,15 @@ func tasksByIDHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, task := range tasks {
 		if task.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(task)
+			writeJSON(w, http.StatusOK, task)
 			return
 		}
 	}
-	http.Error(w, "Task not found", http.StatusNotFound)
+	writeError(w, http.StatusBadRequest, "Invalid task ID")
 }
 
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
+	writeJSON(w, http.StatusOK, tasks)
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,4 +58,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Server is Alive")
+}
+
+func writeJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}
+
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"error": message})
 }
