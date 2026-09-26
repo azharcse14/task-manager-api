@@ -2,7 +2,7 @@ package handler
 
 import (
 	"database/sql"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -112,7 +112,7 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var newTask task.Task
 
-	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
+	if err := json.UnmarshalRead(r.Body, &newTask); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid json body")
 		return
 	}
@@ -138,7 +138,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updated task.Task
-	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
+	if err := json.UnmarshalRead(r.Body, &updated); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid JSON body")
 		return
 	}
