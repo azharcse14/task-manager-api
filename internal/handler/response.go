@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,7 +10,7 @@ import (
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.MarshalWrite(w, data); err != nil {
 		log.Println("failed to encode response:", err)
 	}
 }

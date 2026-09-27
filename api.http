@@ -27,3 +27,15 @@ DELETE http://localhost:8080/tasks/21
 
 ### নেই এমন টাস্ক মোছা
 DELETE http://localhost:8080/tasks/99
+
+### পাতা ১ (প্রতি পাতায় ৫টা)
+GET http://localhost:8080/tasks?page=1&per_page=5
+
+### পাতা ২ (প্রতি পাতায় ৫টা)
+GET http://localhost:8080/tasks?page=2&per_page=5
+
+### শুধু শেষ হওয়া task
+GET http://localhost:8080/tasks?done=true
+
+### ভুল মান দিলে 400 আসবে
+GET http://localhost:8080/tasks?page=abc
