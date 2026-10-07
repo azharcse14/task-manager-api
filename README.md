@@ -165,3 +165,6 @@ Open `api.http` in GoLand (built-in HTTP client) or VS Code (with the REST Clien
 - [ ] Automated tests
 - [ ] User accounts and JWT authentication
 - [ ] Docker and PostgreSQL
+
+
+See [LEARNING_GUIDE.md](LEARNING_GUIDE.md) for my learning progress and next steps (in Bengali).
